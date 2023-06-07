@@ -53,8 +53,8 @@ class UserListView(ListView):
                 "role": user.role,
                 "age": user.age,
                 "locations": [
-                    str(Location.objects.get(pk=user.location_id))
-                ],
+                    str(Location.objects.get(pk=int(user.location_id)))
+                ] if not user.added_by_user else [user.location_id],
                 "total_ads": ad_amount
             })
 
@@ -83,8 +83,8 @@ class UserDetailView(DetailView):
             "role": self.object.role,
             "age": self.object.age,
             "locations": [
-                str(Location.objects.get(pk=self.object.location_id))
-            ],
+                str(Location.objects.get(pk=int(self.object.location_id)))
+            ] if not self.object.added_by_user else [self.object.location_id],
             "total_ads": ad_amount
         }, safe=False, json_dumps_params={'ensure_ascii': False})
 
@@ -92,7 +92,7 @@ class UserDetailView(DetailView):
 @method_decorator(csrf_exempt, name="dispatch")
 class UserCreateView(CreateView):
     model = User
-    fields = ["first_name", "last_name", "username", "password", "role", "age", "location_id"]
+    fields = ["first_name", "last_name", "username", "password", "role", "age", "location_id", "added_by_user"]
 
     def post(self, request, *args, **kwargs):
         user_data = json.loads(request.body)
@@ -103,7 +103,8 @@ class UserCreateView(CreateView):
             password=user_data.get("password"),
             role=user_data.get("role"),
             age=user_data.get("age"),
-            location_id=user_data.get("location_id")
+            location_id=", ".join(user_data.get("locations")),
+            added_by_user=True
         )
 
         return JsonResponse({
@@ -114,9 +115,7 @@ class UserCreateView(CreateView):
             "password": user.password,
             "role": user.role,
             "age": user.age,
-            "locations": [
-                str(Location.objects.get(pk=user.location_id))
-            ]
+            "locations": [user.location_id],
         }, safe=False, json_dumps_params={'ensure_ascii': False})
 
 
@@ -155,8 +154,9 @@ class UserUpdateView(UpdateView):
             self.object.category_id = user_data.get("role")
         if user_data.get('age'):
             self.object.age = user_data.get('age')
-        if user_data.get('location_id'):
-            self.object.location_id = user_data.get("location_id")
+        if user_data.get('locations'):
+            self.object.location_id = user_data.get("locations")
+        self.object.added_by_user = True
 
         self.object.save()
 
@@ -168,7 +168,7 @@ class UserUpdateView(UpdateView):
             "role": self.object.role,
             "age": self.object.age,
             "locations": [
-                str(Location.objects.get(pk=self.object.location_id))
-            ],
+                str(Location.objects.get(pk=int(self.object.location_id)))
+            ] if not self.object.added_by_user else [self.object.location_id],
             "total_ads": ad_amount
         }, safe=False, json_dumps_params={'ensure_ascii': False}, status=200)

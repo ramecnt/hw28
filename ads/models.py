@@ -8,7 +8,8 @@ class User(models.Model):
     password = models.CharField(max_length=50)
     role = models.CharField(max_length=50)
     age = models.IntegerField()
-    location_id = models.IntegerField()
+    location_id = models.CharField(max_length=50)
+    added_by_user = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Пользователь"
